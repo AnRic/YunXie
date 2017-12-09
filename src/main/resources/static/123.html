@@ -1,0 +1,2017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script>
+    {
+        "code": "complain_settlement",
+        "version": "2.0.0",
+        "width": "1280px",
+        "height": "1080px",
+        "top": 0,
+        "left": 0,
+        "fontSize": '16px',
+        "title": "投诉区域分析",
+        "config_properties": [{
+        "property_name": "show_title",
+        "property_text": "是否显示标题框",
+        "property_html_type": "select",
+        "options": [{"name": "是", "value": "1"}, {"name": "否", "value": "0"}]
+    }, {
+        "property_name": "title",
+        "property_text": "标题",
+        "property_html_type": "input"
+    },
+        {
+            "property_name": "show_scroll",
+            "property_text": "是否强制隐藏滚动条",
+            "property_html_type": "select",
+            "options": [{"name": "是", "value": "1"}, {"name": "否", "value": "0"}]
+        }, {
+            "property_name": "width",
+            "property_text": "Width",
+            "property_html_type": "input"
+        }, {
+            "property_name": "height",
+            "property_text": "Height",
+            "property_html_type": "input"
+        }, {
+            "property_name": "fontSize",
+            "property_text": "字体大小",
+            "property_html_type": "input"
+        }
+    ],
+        "in_params": [
+        {name: "beginDate", callback: "complain_settlement_dataReflesh"},
+        {name: "endDate", callback: "complain_settlement_dataReflesh"},
+        {name: "code12301", callback: "complain_settlement_dataReflesh"},
+        {name: "zoneName", callback: "complain_settlement_dataReflesh"}
+
+    ],
+        "out_params": [],
+        "load_js": [],
+        "load_css": [''],
+        data: function () {
+        return {
+            defaultdata: {'beginDate': '20170301', 'endDate': '20170331', 'zoneCode': '86', 'zoneName': '全国'},
+            complain_area_mapChart: {},//投诉热力分布图，迁徙图
+            complain_num_div: {},//投诉量前十
+            complain_settlement_div: {},//受理率前十
+            complain_tourist_source_barChart: {},//投诉有课来源地分布(前8)
+            complain_tourist_sex_barChart: {},//投诉游客性别分布
+            complain_tourist_age_barChart: {},//投诉游客年龄段分布
+            complain_channel_chart: {},//投诉游客渠道分布
+            CONTEXT_PATH: "complain",
+            zoneCode_de: "86",
+            province_code_map: {
+                "上海": "310000000000",
+                "云南": "530000000000",
+                "内蒙古": "150000000000",
+                "北京": "110000000000",
+                "吉林": "220000000000",
+                "四川": "510000000000",
+                "天津": "120000000000",
+                "宁夏": "640000000000",
+                "安徽": "340000000000",
+                "山东": "370000000000",
+                "山西": "140000000000",
+                "广东": "440000000000",
+                "广西": "450000000000",
+                "新疆": "650000000000",
+                "江苏": "320000000000",
+                "江西": "360000000000",
+                "河北": "130000000000",
+                "河南": "410000000000",
+                "浙江": "330000000000",
+                "海南": "460000000000",
+                "湖北": "420000000000",
+                "湖南": "430000000000",
+                "甘肃": "620000000000",
+                "福建": "350000000000",
+                "西藏": "540000000000",
+                "贵州": "520000000000",
+                "辽宁": "210000000000",
+                "重庆": "500000000000",
+                "陕西": "610000000000",
+                "青海": "630000000000",
+                "黑龙江": "230000000000"
+            },
+            geoCoordMap: {
+                '安徽': [117.17, 31.52],
+                '北京': [116.24, 39.55],
+                '重庆': [106.54, 29.59],
+                '福建': [119.18, 26.05],
+                '甘肃': [103.51, 36.04],
+                '广东': [113.14, 23.08],
+                '广西': [108.19, 22.48],
+                '贵州': [106.42, 26.35],
+                '海南': [110.20, 20.02],
+                '河北': [114.30, 38.02],
+                '河南': [113.40, 34.46],
+                '黑龙江': [128.36, 45.44],
+                '湖北': [112.27, 30.15],
+                '湖南': [112.59, 28.12],
+                '吉林': [125.19, 43.54],
+                '江苏': [118.46, 32.03],
+                '江西': [115.55, 28.40],
+                '辽宁': [123.25, 41.48],
+                '内蒙古': [108.41, 40.48],
+                '宁夏': [106.16, 38.27],
+                '青海': [101.48, 36.38],
+                '山东': [118.00, 36.40],
+                '山西': [112.33, 37.54],
+                '陕西': [108.57, 34.17],
+                '上海': [121.29, 31.14],
+                '四川': [104.04, 30.40],
+                '天津': [117.12, 39.02],
+                '西藏': [91.08, 29.39],
+                '新疆': [87.36, 43.45],
+                '云南': [102.42, 25.04],
+                '浙江': [120.10, 30.16],
+                '澳门': [113.54, 22.22],
+                '台湾': [121.21, 23.53],
+                '香港': [114.19, 22.30]
+            }
+        }
+    },
+        mounted: function () {
+            var mapToolJsPath = this.defaultdata["mapToolJsPath"];
+            var mapTool = document.createElement("script");
+            mapTool.src = mapToolJsPath;
+            document.head.appendChild(mapTool);
+
+            var within = this.defaultdata["within"];
+            if(within != 1){
+                var zoneNameMapJSPath = this.defaultdata["zoneNameMapJSPath"];
+
+                var mapvjs = document.createElement("script");
+                mapvjs.src = zoneNameMapJSPath;
+                document.head.appendChild(mapvjs);
+            }
+            mapvjs.onload=function(){
+                this.complain_area_mapChart_init();
+                this.complain_num();
+                this.complain_settlement_init();
+                this.complain_tourist_source_barChart_init();
+                this.complain_tourist_sex_barChart_init();
+                this.complain_tourist_age_barChart_init();
+                this.complain_channel_chart_init();
+                this.complain_settlement_dataReflesh();
+            }
+
+
+        },
+        methods: {
+            resize: function () {
+
+            },
+            convertData:function(data1) {
+                var _this = this;
+
+                var res = [];
+                for (var i = 0; i < data1.length; i++) {
+                    var dataItem = data1[i];
+                    var fromCoord = _this.geoCoordMap[dataItem[0].name];
+                    var toCoord = _this.geoCoordMap[dataItem[1].name];
+                    if (fromCoord && toCoord) {
+                        res.push({
+                            fromName: dataItem[0].name,
+                            toName: dataItem[1].name,
+                            time: dataItem[1].time,
+                            coords: [fromCoord, toCoord]
+                        });
+                    }
+                }
+                return res;
+            },
+            complain_area_mapChart_init:function(){
+
+                var _this = this;
+
+                this.complain_area_mapChart = echarts.init(document.getElementById('complain_area_mapChart'));
+
+                var beginDate = this.defaultdata["beginDate"];
+                var endDate = this.defaultdata["endDate"];
+                var zoneCode = this.defaultdata["code12301"];
+                var zoneName = this.defaultdata["zoneName"];
+                var year_or_month = monthOrYearJudge(beginDate, endDate);
+
+                var title_areaname =  zoneName;
+                var zoom_rate = 1;
+                var china_or_prov_flag = 2;
+
+                if(zoneName == '全国'){
+                    zoneName = 'china';
+                    zoom_rate = 1.2;
+                    china_or_prov_flag = 1;
+                }
+
+                var title_year = beginDate.substring(0,4);
+                var title_month = beginDate.substring(4,6);
+
+                var title_str =  title_year + '年' + title_month + '月份'+title_areaname+'投诉量热力分布图';
+                if(year_or_month == 2)
+                    title_str = title_year + '年' +title_areaname+'投诉量热力分布图';
+
+                var tooltip = {trigger: 'item'};
+                if(china_or_prov_flag == 1){
+                    tooltip = {
+                        trigger: 'item',
+                        formatter: function(params) {
+                            if (params.seriesIndex == 0) {
+                                if(params.data.value)
+                                    return params.name + '<br>' + params.seriesName + ':' + params.data.value + '件';
+                                else
+                                    return params.name + '<br>' + params.seriesName + ':-';
+                            } else if (params.seriesIndex == 1) {
+                                return params.data.fromName + '游客于'+params.data.time+'投诉' + params.data.toName;
+                            }
+                        }
+                    };
+                }
+
+                var option = {
+                    title: {
+                        text: title_str,
+                        textStyle:title_textStyle,
+                        left: 'center',
+                        top:15
+                    },
+                    tooltip: tooltip,
+                    grid: {
+                        left: '1%',
+                        right: '1%',
+                        bottom: '1%',
+                        containLabel: true
+                    },
+                    toolbox: {
+                        show: false,
+                        orient: 'horizontal',
+                        left: 'right',
+                        top: 'center',
+                        feature: {
+                            dataView: {readOnly: false},
+                            restore: {},
+                            saveAsImage: {}
+                        }
+                    },
+                    series: [
+                        {
+                            name: '投诉量',
+                            type: 'map',
+                            mapType: zoneName,
+                            zoom:zoom_rate,
+                            roam: false,
+                            data:[],
+                            itemStyle: {normal: {borderColor: '#A2C0D5', areaColor: '#6FA5A7'}},
+                            label: {
+                                normal: {
+                                    show: true,
+                                    textStyle:{
+                                        color:'#FFFFFF'
+                                    }
+                                },
+                                emphasis: {
+                                    show: true
+                                }
+                            }
+                        }
+                    ]
+                };
+
+                if(china_or_prov_flag == 1){
+                    var option = {
+                        title: {
+                            text: title_str,
+                            textStyle:title_textStyle ,
+                            left: 'center',
+                            top:15
+                        },
+                        tooltip: tooltip,
+                        grid: {
+                            left: '1%',
+                            right: '1%',
+                            bottom: '1%',
+                            containLabel: true
+                        },
+                        toolbox: {
+                            show: false,
+                            orient: 'horizontal',
+                            left: 'right',
+                            top: 'center',
+                            feature: {
+                                dataView: {readOnly: false},
+                                restore: {},
+                                saveAsImage: {}
+                            }
+                        },
+                        geo: {
+                            map: 'china',
+                            zoom:zoom_rate,
+                            selectedMode:'single',
+                            label: {
+                                normal: {
+                                    show: true,
+                                    textStyle: {
+                                        color: 'rgba(255,255,255,0.9)',
+                                        fontSize:10
+                                    }
+                                },
+                                emphasis: {
+                                    show: true,
+                                    textStyle:{
+                                        color:'#FFFFFF',
+                                        fontSize:10
+                                    }
+                                }
+                            },
+                            itemStyle: {
+                                normal:{
+                                    borderColor: 'rgba(0,0,0,0.3)',
+                                    areaColor: '#6FA5A7'
+                                },
+                                emphasis:{
+                                    shadowOffsetX: 0,
+                                    shadowOffsetY: 0,
+                                    shadowBlur: 20,
+                                    borderWidth: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)',
+                                    areaColor: null
+                                }
+                            },
+                            roam: false
+                        },
+                        series: [
+                            {
+                                name: '投诉量',
+                                type: 'map',
+                                zlevel: 10,
+                                geoIndex: 0,
+                                mapType: zoneName,
+                                zoom:zoom_rate,
+                                roam: false,
+                                data:[],
+                                itemStyle:{normal:{borderColor:'#A2C0D5',areaColor: '#6FA5A7'}},
+                                label: {
+                                    normal: {
+                                        show: true,
+                                        textStyle:{
+                                            color:'#FFFFFF',
+                                            fontSize:12
+                                        }
+                                    },
+                                    emphasis: {
+                                        show: true,
+                                        textStyle:{
+                                            color:'#FFFFFF',
+                                            fontSize:12
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                name: '投诉来源地迁徙',
+                                type: 'lines',
+                                zlevel: 2,
+                                rippleEffect: {
+                                    brushType: 'stroke'
+                                },
+                                symbol: ['pin', 'pin'],
+                                symbolSize: 7,
+                                effect: {
+                                    show: true,
+                                    period: 6,
+                                    trailLength: 0.7,
+                                    color: '#fff',
+                                    symbolSize: 3
+                                },
+                                lineStyle: {
+                                    normal: {
+                                        color: "#ECCE64",
+                                        width: 0.5,
+                                        opacity: 0.9,
+                                        curveness: 0.2
+                                    }
+                                }
+                            },
+                            {
+                                type: 'effectScatter',
+                                coordinateSystem: 'geo',
+                                zlevel: 4,
+                                rippleEffect: {
+                                    brushType: 'stroke'
+                                },
+                                label: {
+                                    normal: {
+                                        show: false,
+                                        position: 'right',
+                                        formatter: '{b}',
+                                        color:'#FFFFFF'
+                                    }
+                                },
+                                symbolSize: function (val) {
+                                    return 8;
+                                },
+                                itemStyle: {
+                                    normal: {
+                                        color: '#ECCE64',
+                                        show:true
+                                    }
+                                }
+                            },
+                            {
+                                type: 'effectScatter',
+                                coordinateSystem: 'geo',
+                                zlevel: 4,
+                                rippleEffect: {
+                                    brushType: 'stroke'
+                                },
+                                label: {
+                                    normal: {
+                                        show: false,
+                                        position: 'right',
+                                        formatter: '{b}',
+                                        color:'#FFFFFF'
+                                    }
+                                },
+                                symbolSize: function (val) {
+                                    return 8;
+                                },
+                                itemStyle: {
+                                    normal: {
+                                        color: '#E7847C',
+                                        show:true
+                                    }
+                                }
+                            }
+                        ]
+                    };
+                }
+
+                setTimeout(function(){
+                        _this.complain_area_mapChart.setOption(option);
+                    },
+                    2);
+
+                //如果是省级行政区划，取消地图触发事件
+                if(china_or_prov_flag!=2){
+                    _this.complain_area_mapChart.on('click', function (params) {
+                        //将省份排名显示出来
+                        $("#china_or_prov_switch").show();
+
+
+                        var city = params.name;
+                        var zoneCode = _this.province_code_map[city];
+
+                        _this.zoneCode_de=zoneCode;
+                        //获取省份名称获取，对应的12301中的省份前缀编码
+                        //var prov_code = province_code_map.get(city);
+
+                        //切换本文中的省份名称
+                        $(".switch_prov_class").html(city);
+
+                        //刷新投诉排名
+                        _this.complain_num_dataReflesh(zoneCode);
+                        //刷新结案率排名
+                        _this.complain_settlement_div_dataReflesh(zoneCode);
+
+                        //刷新投诉游客来源地分布
+                        _this.complain_tourist_source_barChart_dataReflesh(zoneCode);
+
+                        //刷新投诉游客性别比例
+                        _this.complain_tourist_sex_barChart_dataReflesh(zoneCode);
+
+                        //刷新游客年龄段分布
+                        _this.complain_tourist_age_barChart_dataReflesh(zoneCode);
+
+                        //刷新投诉渠道
+                        _this.complain_channel_chart_dataReflesh(zoneCode);
+
+                        _this.reflesh_close_rank(zoneCode);
+                    });
+
+                    $("#swith_to_china").click(function () {
+                        // var prv_code = $("#prv_code").val();
+                        if(_this.defaultdata.zoneCode!='86'){
+                            return;
+                        }
+                        _this.zoneCode_de="86";
+
+                        // var data_picker_val = $("#data_picker").val();
+                        // var yearMonth = data_picker_val.split("-");
+
+                        // //指定年月的最后一天
+                        // var lastDayOfMonth = getLastDayOfMonth(yearMonth[0], yearMonth[1]);
+                        // var beginDate = yearMonth[0] +""+ yearMonth[1] + "01";
+                        // var endDate = yearMonth[0] +""+ yearMonth[1] +""+ lastDayOfMonth;
+
+                        //隐藏省份排名显示出来
+                        $("#china_or_prov_switch").hide();
+
+                        //切换本文中的省份名称
+                        $(".switch_prov_class").html("");
+
+                        //刷新投诉排名
+                        _this.complain_num_dataReflesh();
+                        //刷新结案率排名
+                        _this.complain_settlement_div_dataReflesh();
+
+                        //刷新投诉游客来源地分布
+                        _this.complain_tourist_source_barChart_dataReflesh();
+
+                        //刷新投诉游客性别比例
+                        _this.complain_tourist_sex_barChart_dataReflesh();
+
+                        //刷新游客年龄段分布
+                        _this.complain_tourist_age_barChart_dataReflesh();
+
+                        //刷新投诉渠道
+                        _this.complain_channel_chart_dataReflesh();
+                    });
+
+                }
+
+
+
+
+            },
+            complain_num:function(){
+                this.complain_num_div = echarts.init(document.getElementById("complain_num"));
+            },
+            complain_settlement_init:function(){
+                this.complain_settlement_div = echarts.init(document.getElementById("complain_settlement"));
+            },
+            complain_tourist_source_barChart_init:function(){
+                this.complain_tourist_source_barChart = echarts.init(document.getElementById("complain_tourist_source_barChart"));
+            },
+            complain_tourist_sex_barChart_init:function(){
+                this.complain_tourist_sex_barChart = echarts.init(document.getElementById("complain_tourist_sex_barChart"));
+
+                var option = {
+                    color:['#D458A4','#1A9FD9'],
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: "{a} <br/>{b}: {c} ({d}%)"
+                    },
+                    legend: {
+                        orient: 'horizontal',
+                        //x: 'center',
+                        bottom: 20,
+                        itemHeight:6,
+                        itemWidth:7,
+                        data:[]
+                    },
+                    series: [
+                        {
+                            name:'投诉游客',
+                            type:'pie',
+                            selectedMode: false,
+                            center: ['50%', '38%'],
+                            radius: [0, '30%'],
+                            label: {
+                                normal: {
+                                    position: 'center',
+                                    color:'#AAC8DC'
+                                }
+                            },
+                            labelLine: {
+                                normal: {
+                                    show: false
+                                }
+                            },
+                            data:[]
+                        },
+                        {
+                            name:'投诉状态',
+                            type:'pie',
+                            center: ['50%', '42%'],
+                            radius: ['35%', '50%'],
+                            label: {
+                                normal: {
+                                    show: false,
+                                    position: 'inside',
+                                    color:'#AAC8DC',
+                                    textStyle:{fontSize:12},
+                                    formatter:'{d}%'
+                                }
+                            },
+                            labelLine: {
+                                normal: {
+                                    show: false
+                                }
+                            },
+                            data:[]
+                        }
+                    ]
+                    ,
+                    animationEasing: 'elasticOut',
+                    animationDelayUpdate: function (idx) {
+                        return idx * 200;
+                    }
+                };
+                this.complain_tourist_sex_barChart.setOption(option);
+
+            },
+            complain_tourist_age_barChart_init:function(){
+                this.complain_tourist_age_barChart = echarts.init(document.getElementById("complain_tourist_age_barChart"));
+            },
+            complain_channel_chart_init:function(){
+                this.complain_channel_chart = echarts.init(document.getElementById("complain_channel_chart"));
+
+                var option = {
+                    color:['#E88985','#159FAC','#97D768','#B26FE3','#E6A849','#3892E5'],
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: function (param) {
+                            return param.seriesName+"<br>"+ param.name+":"+param.value+"("+param.percent.toFixed(0)+"%)";
+                        }
+                    },
+                    legend:{
+                        data:[],
+                        itemHeight:6 ,
+                        itemWidth:7,
+                        orient:'horizontal',
+                        bottom:5
+                    },
+                    series: [
+                        {
+                            name:'投诉状态',
+                            type:'pie',
+                            selectedMode:false,
+                            center: ['50%', '39%'],
+                            radius: [0, '40%'],
+                            label: {
+                                normal: {
+                                    position: 'center',
+                                    color:'#AAC8DC',
+                                    textStyle:{fontSize:12 }
+                                }
+                            },
+                            labelLine: {
+                                normal: {
+                                    show: false
+                                }
+                            },
+                            data:[]
+                        },
+                        {
+                            name:'投诉渠道',
+                            type:'pie',
+                            center: ['50%', '43%'],
+                            radius: ['45%', '75%'],
+                            label: {
+                                normal: {
+                                    position: 'inside',
+                                    color:'#AAC8DC',
+                                    textStyle:{fontSize:12 },
+                                    formatter:function (param) {
+                                        return param.percent.toFixed(0) + "%";
+                                    }
+                                }
+                            },
+                            labelLine: {
+                                normal: {
+                                    show: false
+                                }
+                            },
+                            data:[]
+                        }
+                    ],
+                    animationEasing: 'elasticOut',
+                    animationDelayUpdate: function (idx) {
+                        return idx * 200;
+                    }
+                };
+
+                this.complain_channel_chart.setOption(option);
+
+            },
+            complain_settlement_dataReflesh:function(){
+
+                this.reflesh_close_rank();
+                this.complain_area_mapChart_dataReflesh();
+                this.complain_num_dataReflesh();
+                this.complain_settlement_div_dataReflesh();
+                this.complain_tourist_source_barChart_dataReflesh();
+                this.complain_tourist_sex_barChart_dataReflesh();
+                this.complain_tourist_age_barChart_dataReflesh();
+                this.complain_channel_chart_dataReflesh();
+            },
+            reflesh_close_rank:function(zoneCode1){
+
+                var _this = this;
+                var beginDate = this.defaultdata["beginDate"];
+                var endDate = this.defaultdata["endDate"];
+                var zoneCode = this.defaultdata["code12301"];
+
+                if(zoneCode1){
+                    zoneCode=zoneCode1;
+                }
+
+                if(zoneCode=="86"){
+                    $("#china_or_prov_switch").hide();
+
+                    //切换本文中的省份名称
+                    $(".switch_prov_class").html("");
+                }
+                //通过接口异步请求数据
+                $http.get(this.CONTEXT_PATH + "/provice_rank",{'beginDate': beginDate, 'endDate': endDate, 'zoneCode': zoneCode},
+                    function(result){
+
+                        $("#close_rate_").html(result[1]+"%");
+                        $("#close_rate_id").html(result[0]);
+                    })
+
+            },
+            complain_area_mapChart_dataReflesh:function(zoneCode1){
+
+
+                var _this = this;
+                _this.complain_area_mapChart_init();
+                var beginDate = this.defaultdata["beginDate"];
+                var endDate = this.defaultdata["endDate"];
+                var zoneCode = this.defaultdata["code12301"];
+                var zoneName = this.defaultdata["zoneName"];
+                var year_or_month = monthOrYearJudge(beginDate, endDate);
+                var title_areaname =zoneName;
+                var china_or_prov_flag = 2;
+
+                if(zoneCode1){
+                    zoneCode=zoneCode1;
+                }
+
+                if(zoneName == '全国'){
+                    zoneName = 'china';
+                    // zoom_rate = 1.2;
+                    china_or_prov_flag = 1;
+                }
+
+
+                var title_year = beginDate.substring(0,4);
+                var title_month = beginDate.substring(4,6);
+
+                var title_str =  title_year + '年' + title_month + '月份'+title_areaname+'投诉量热力分布图';
+                if(year_or_month == 2)
+                    title_str = title_year + '年' +title_areaname+'投诉量热力分布图';
+
+                var provinceDataList = [];
+                var top_cnt = 0;
+                var migrateData;
+                //通过接口异步请求数据
+                if(china_or_prov_flag == 1){
+
+                    //热力图数据
+                    $http.get(this.CONTEXT_PATH + "/province_case_sort",{'beginDate': beginDate, 'endDate': endDate, 'zoneCode': zoneCode},
+                        function(result){
+                            $(result).each(function (i, item) {
+                                var maplist;
+
+                                maplist = {'name':item.name,'value':item.data};
+
+                                provinceDataList.push(maplist);
+
+                                if(item.data > top_cnt){
+                                    top_cnt = item.data;
+                                }
+                            });
+                            var extendOption1 = {
+                                title: {
+                                    text: title_str,
+                                    textStyle:title_textStyle ,
+                                    left: 'center',
+                                    top:15
+                                },
+                                visualMap: {
+                                    orient:'horizontal',
+                                    min: 1,
+                                    max: top_cnt,
+                                    left: 10,
+                                    top: 'bottom',
+                                    text: ['高','低'],
+                                    itemHeight:120,
+                                    align:'bottom',
+                                    itemWidth:10,
+                                    inverse:true,
+                                    calculable: true,
+                                    textStyle:visualMap_textStyle,
+                                    inRange: {
+                                        color: ['#6FA5A7','#19485F']
+                                    }
+                                },
+                                series: [{
+                                    data: provinceDataList
+                                }]
+                            };
+                            setTimeout(function(){
+                                _this.complain_area_mapChart.setOption(extendOption1);
+                            },2);
+
+                        })
+
+                    //迁徙图数据
+                    $http.asyncAjax(this.CONTEXT_PATH+"/migrate", "", "get", "false", "text",
+                        function (result) {
+
+                            migrateData = eval('('+result+')');
+
+
+                            var convertData_migrateData=_this.convertData(migrateData);
+
+
+                            var extendOption = {
+                                visualMap: {
+                                    orient:'horizontal',
+                                    min: 1,
+                                    seriesIndex: [0],
+                                    //max: top_cnt,
+                                    left: 10,
+                                    top: 'bottom',
+                                    text: ['高','低'],
+                                    itemHeight:120,
+                                    align:'bottom',
+                                    itemWidth:10,
+                                    inverse:true,
+                                    calculable: true,
+                                    textStyle:visualMap_textStyle,
+                                    inRange: {
+                                        color: ['#6FA5A7','#19485F']
+                                    }
+                                },
+                                series: [
+                                    {
+                                        data: provinceDataList
+                                    },
+                                    {
+                                        data: convertData_migrateData
+                                    },
+                                    {
+                                        data: migrateData.map(function (dataItem) {
+                                            return {
+                                                name: '',
+                                                value: _this.geoCoordMap[dataItem[0].name].concat([dataItem[0].value])
+                                            };
+                                        })
+                                    },
+                                    {
+                                        data: migrateData.map(function (dataItem) {
+                                            return {
+                                                name: '',
+                                                value: _this.geoCoordMap[dataItem[1].name].concat([dataItem[1].value])
+                                            };
+                                        })
+                                    }
+                                ]
+                            }
+
+                            setTimeout(function(){
+                                _this.complain_area_mapChart.setOption(extendOption);
+                            },10)
+                        });
+                }
+                else{
+                    zoneCode = _this.defaultdata.code12301;
+                    $http.get(this.CONTEXT_PATH + "/city_case_sort",{'beginDate': beginDate, 'endDate': endDate, 'zoneCode': zoneCode},
+                        function(result){
+                            $(result).each(function (i, item) {
+                                var maplist;
+                                var name=handleName(item.name);
+                                maplist = {'name':name,'value':item.data};
+
+                                provinceDataList.push(maplist);
+
+                                if(item.data > top_cnt){
+                                    top_cnt = item.data;
+                                }
+
+                            });
+                            var extendOption = {
+                                visualMap: {
+                                    orient:'horizontal',
+                                    min: 1,
+                                    max: top_cnt,
+                                    left: 10,
+                                    top: 'bottom',
+                                    text: ['高','低'],
+                                    itemHeight:120,
+                                    align:'bottom',
+                                    itemWidth:10,
+                                    inverse:true,
+                                    calculable: true,
+                                    textStyle:visualMap_textStyle,
+                                    inRange: {
+                                        color: ['#6FA5A7','#19485F']
+                                    }
+                                },
+                                series: [{
+                                    data: provinceDataList
+                                }]
+                            };
+
+                            _this.complain_area_mapChart.setOption(extendOption);
+
+                            $("#china_or_prov_switch").show();
+
+
+                            var city = _this.defaultdata.zoneName;
+
+
+                            //获取省份名称获取，对应的12301中的省份前缀编码
+                            //var prov_code = province_code_map.get(city);
+
+                            //切换本文中的省份名称
+                            $(".switch_prov_class").html(city);
+                            _this.reflesh_close_rank();
+
+
+                        })
+                }
+
+
+
+            },
+            complain_num_dataReflesh:function(zoneCode1){
+                var _this = this;
+
+                var beginDate = _this.defaultdata["beginDate"],
+                    endDate = _this.defaultdata["endDate"],
+                    zoneCode = _this.defaultdata["code12301"],
+                    zoneName = _this.defaultdata["zoneName"];
+
+                if(zoneCode1){
+                    zoneCode=zoneCode1;
+                }
+                var prov_or_city = provOrCityJudge(zoneCode);
+
+                if(prov_or_city == 2){
+
+                    zoneCode = _this.zoneCode_de;
+                    var xAxisData = [];
+                    var data = [];
+                    var jsonObjArr = [];
+                    var max_total_num = 0;
+
+                    $http.get(this.CONTEXT_PATH + "/province_case_sort",{'beginDate': beginDate, 'endDate': endDate, 'zoneCode': zoneCode},
+                        function (result) {
+
+
+                            $(result).each(function (i, item) {
+                                if(i<10){
+                                    xAxisData.push(item.name);
+                                    data.push(item.data);
+
+                                    if(item.data > max_total_num)
+                                        max_total_num = item.data;
+
+                                    var jsonObj = {name:i+1,value:item.data,
+                                        itemStyle: {
+                                            normal: {
+                                                barBorderRadius: 6,
+                                                color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{
+                                                    offset: 0,
+                                                    color: '#953616'
+                                                },
+                                                    {
+                                                        offset: 1,
+                                                        color: '#D54E1E'
+                                                    }]),
+                                                shadowColor: 'rgba(0, 0, 0, 0.4)',
+                                                shadowBlur: 20
+                                            }
+                                        }};
+                                    jsonObjArr.push(jsonObj);
+                                }
+                            });
+
+                            var supplementObjLen = 10 - result.length;
+                            if(supplementObjLen > 0){
+                                for(var suppleIndex = 0; suppleIndex < supplementObjLen; suppleIndex++){
+                                    xAxisData.push("  ");
+                                    data.push(0);
+                                    var jsonObj = {name:result.length + suppleIndex,value:0,
+                                        itemStyle: {
+                                            normal: {
+                                                barBorderRadius: 6,
+                                                color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{
+                                                    offset: 0,
+                                                    color: '#953616'
+                                                },
+                                                    {
+                                                        offset: 1,
+                                                        color: '#D54E1E'
+                                                    }]),
+                                                shadowColor: 'rgba(0, 0, 0, 0.4)',
+                                                shadowBlur: 20
+                                            }
+                                        }};
+                                    jsonObjArr.push(jsonObj);
+                                }
+                            }
+
+                            xAxisData = xAxisData.reverse();
+                            data = data.reverse();
+                            jsonObjArr = jsonObjArr.reverse();
+                            max_total_num = max_total_num * 2;
+                            if(max_total_num==0)
+                                max_total_num = 200;
+
+                            var option = {
+                                grid: {
+                                    top:'4%',
+                                    left: '0%',
+                                    right: '8%',
+                                    bottom: '5%',
+                                },
+                                yAxis: [{
+                                    data: xAxisData.map(function(x){
+                                        return x;
+                                    }),
+                                    show : false,
+                                    splitLine : {show : false},
+                                    axisTick:{show:false},
+                                    axisLine : {show : false,lineStyle : {type : 'solid',width: 1,color : '#999'}}
+                                }, {
+                                    //辅助x轴
+                                    show: false,
+                                    data: xAxisData.map(function(x){
+                                        return x;
+                                    })
+                                }],
+                                xAxis: {
+                                    max: max_total_num,
+                                    inverse :true,
+                                    splitLine : {show : false},
+                                    axisTick:{show:false},
+                                    axisLabel:{show:false},
+                                    axisLine : {show : false,lineStyle : {type : 'solid',width: 1,color : '#999'}}
+                                },
+                                series: [
+                                    {
+                                        // 辅助系列
+                                        type           : 'bar',
+                                        label:{normal:{formatter:"{b}", show:true, position:['60%', -17 ],textStyle:series_bar_label_normal_textStyle}},
+                                        silent         : true,
+                                        yAxisIndex     : 1,
+                                        itemStyle      : {
+                                            normal         : {
+                                                barBorderRadius: 6,
+                                                barGap:50,
+                                                color          : 'rgba(255, 255, 255, 0.1)'
+                                            }
+                                        },
+                                        barWidth: 6 ,
+                                        data: data.map(function (val) {
+                                            return max_total_num;
+                                        })
+                                    },
+                                    {
+                                        type: 'bar',
+                                        label:{normal:{formatter:"{c}", show:true,  position:['100%', -17 ],offset:[-120 , 0],textStyle:series_bar_label_normal_textStyle}},
+                                        barGap:50,
+                                        data:jsonObjArr,
+                                        barWidth: 6
+                                    }
+                                ],
+                                animationEasing: 'elasticOut',
+                                animationDelayUpdate: function (idx) {
+                                    return idx * 200;
+                                }
+                            };
+                            _this.complain_num_div.setOption(option);
+                        });
+                }
+
+                if(prov_or_city == 1){
+
+                    var xAxisData = [];
+                    var data = [];
+                    var jsonObjArr = [];
+                    var max_total_num = 0;
+
+                    $http.get(this.CONTEXT_PATH + "/city_case_sort",{'beginDate': beginDate, 'endDate': endDate, 'zoneCode': zoneCode},
+                        function (result) {
+
+
+                            $(result).each(function (i, item) {
+                                if(i<10){
+                                    xAxisData.push(item.name);
+                                    data.push(item.data);
+
+                                    if(item.data > max_total_num)
+                                        max_total_num = item.data;
+
+                                    var jsonObj = {name:i+1,value:item.data,
+                                        itemStyle: {
+                                            normal: {
+                                                barBorderRadius: 6,
+                                                color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{
+                                                    offset: 0,
+                                                    color: '#953616'
+                                                },
+                                                    {
+                                                        offset: 1,
+                                                        color: '#D54E1E'
+                                                    }]),
+                                                shadowColor: 'rgba(0, 0, 0, 0.4)',
+                                                shadowBlur: 20
+                                            }
+                                        }};
+                                    jsonObjArr.push(jsonObj);
+                                }
+                            });
+
+                            var supplementObjLen = 10 - result.length;
+                            if(supplementObjLen > 0){
+                                for(var suppleIndex = 0; suppleIndex < supplementObjLen; suppleIndex++){
+                                    xAxisData.push("  ");
+                                    data.push(0);
+                                    var jsonObj = {name:result.length + suppleIndex,value:0,
+                                        itemStyle: {
+                                            normal: {
+                                                barBorderRadius: 6,
+                                                color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{
+                                                    offset: 0,
+                                                    color: '#953616'
+                                                },
+                                                    {
+                                                        offset: 1,
+                                                        color: '#D54E1E'
+                                                    }]),
+                                                shadowColor: 'rgba(0, 0, 0, 0.4)',
+                                                shadowBlur: 20
+                                            }
+                                        }};
+                                    jsonObjArr.push(jsonObj);
+                                }
+                            }
+
+                            xAxisData = xAxisData.reverse();
+                            data = data.reverse();
+                            jsonObjArr = jsonObjArr.reverse();
+                            max_total_num = max_total_num * 2;
+                            if(max_total_num==0)
+                                max_total_num = 200;
+
+                            var option = {
+                                grid: {
+                                    top:'4%',
+                                    left: '0%',
+                                    right: '8%',
+                                    bottom: '5%',
+                                },
+                                yAxis: [{
+                                    data: xAxisData.map(function(x){
+                                        return x;
+                                    }),
+                                    show : false,
+                                    splitLine : {show : false},
+                                    axisTick:{show:false},
+                                    axisLine : {show : false,lineStyle : {type : 'solid',width: 1,color : '#999'}}
+                                }, {
+                                    //辅助x轴
+                                    show: false,
+                                    data: xAxisData.map(function(x){
+                                        return x;
+                                    })
+                                }],
+                                xAxis: {
+                                    max: max_total_num,
+                                    inverse :true,
+                                    splitLine : {show : false},
+                                    axisTick:{show:false},
+                                    axisLabel:{show:false},
+                                    axisLine : {show : false,lineStyle : {type : 'solid',width: 1,color : '#999'}}
+                                },
+                                series: [
+                                    {
+                                        // 辅助系列
+                                        type           : 'bar',
+                                        label:{normal:{formatter:"{b}", show:true, position:['60%', -17 ],textStyle:series_bar_label_normal_textStyle}},
+                                        silent         : true,
+                                        yAxisIndex     : 1,
+                                        itemStyle      : {
+                                            normal         : {
+                                                barBorderRadius: 6,
+                                                barGap:50,
+                                                color          : 'rgba(255, 255, 255, 0.1)'
+                                            }
+                                        },
+                                        barWidth: 6 ,
+                                        data: data.map(function (val) {
+                                            return max_total_num;
+                                        })
+                                    },
+                                    {
+                                        type: 'bar',
+                                        label:{normal:{formatter:"{c}", show:true,  position:['100%', -17 ],offset:[-120 , 0],textStyle:series_bar_label_normal_textStyle}},
+                                        barGap:50,
+                                        data:jsonObjArr,
+                                        barWidth: 6
+                                    }
+                                ],
+                                animationEasing: 'elasticOut',
+                                animationDelayUpdate: function (idx) {
+                                    return idx * 200;
+                                }
+                            };
+                            _this.complain_num_div.setOption(option);
+                        });
+                }
+
+
+
+
+            },
+            complain_settlement_div_dataReflesh:function(zoneCode1){
+                var _this = this;
+
+                var beginDate = _this.defaultdata["beginDate"],
+                    endDate = _this.defaultdata["endDate"],
+                    zoneCode =_this.defaultdata["code12301"],
+                    zoneName = _this.defaultdata["zoneName"];
+                if(zoneCode1){
+                    zoneCode=zoneCode1;
+                }
+
+                var prov_or_city = provOrCityJudge(zoneCode);
+
+                if(prov_or_city == 2){
+                    $http.get(this.CONTEXT_PATH + "/province_case_rate_sort",{'beginDate': beginDate, 'endDate': endDate, 'zoneCode': zoneCode,'rateType':'1'},
+                        function (result) {
+
+                            var xAxisData = [];
+                            var data = [];
+                            var jsonObjArr = [];
+                            var max_total_val = 0;
+
+                            $(result).each(function (i, item) {
+                                if(i<10){
+                                    //只取区县列表的前十个
+
+                                    xAxisData.push(item.name);
+                                    data.push(item.rate);
+
+                                    if(item.rate > max_total_val)
+                                        max_total_val = item.rate;
+
+                                    var jsonObj = {name: i + 1,value:item.rate,
+                                        itemStyle: {
+                                            normal: {
+                                                barBorderRadius: 6,
+                                                color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{
+                                                    offset: 1,
+                                                    color: '#238C3F'
+                                                }, {
+                                                    offset: 0,
+                                                    color: '#2BAF4E'
+                                                }]),
+                                                shadowColor: 'rgba(0, 0, 0, 0.4)',
+                                                shadowBlur: 20
+                                            }
+                                        }};
+
+                                    jsonObjArr.push(jsonObj);
+                                }
+                            });
+
+                            //如果地区数，小于10个，其他补充为空
+                            var supplementObjLen = 10 - result.length;
+                            if(supplementObjLen > 0){
+                                for(var suppleIndex = 0; suppleIndex < supplementObjLen; suppleIndex++){
+                                    xAxisData.push("  ");
+                                    data.push(0);
+                                    var jsonObj = {name:result.length + suppleIndex,value:0,
+                                        itemStyle: {
+                                            normal: {
+                                                barBorderRadius: 6,
+                                                color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{
+                                                    offset: 0,
+                                                    color: '#953616'
+                                                },
+                                                    {
+                                                        offset: 1,
+                                                        color: '#D54E1E'
+                                                    }]),
+                                                shadowColor: 'rgba(0, 0, 0, 0.4)',
+                                                shadowBlur: 20
+                                            }
+                                        }};
+                                    jsonObjArr.push(jsonObj);
+                                }
+                            }
+
+                            xAxisData = xAxisData.reverse();
+                            data = data.reverse();
+                            jsonObjArr = jsonObjArr.reverse();
+
+                            var option = {
+                                grid: {
+                                    top:'4%',
+                                    left: '0%',
+                                    right: '10%',
+                                    bottom: '5%',
+                                    //containLabel: true
+                                },
+                                yAxis: [{
+                                    data: xAxisData.map(function(x){
+                                        return x;
+                                    }),
+                                    show : false,
+                                    splitLine : {show : false},
+                                    axisTick:{show:false},
+                                    axisLine : {show : false,lineStyle : {type : 'solid',width: 1,color : '#999'}}
+                                }, {
+                                    // 辅助 x 轴
+                                    show: false,
+                                    data: xAxisData.map(function(x){
+                                        return x;
+                                    })
+                                }],
+                                xAxis: {
+                                    max: 100,
+                                    splitLine : {show : false},
+                                    axisTick:{show:false},
+                                    axisLabel:{show:false},
+                                    axisLine : {show : false,lineStyle : {type : 'solid',width: 1,color : '#999'}}
+                                },
+                                series: [
+                                    {
+                                        // 辅助系列
+                                        type           : 'bar',
+                                        label:{normal:{formatter:"{b}", show:true, position:[0, -17 ],textStyle:series_bar_label_normal_textStyle}},
+                                        silent         : true,
+                                        yAxisIndex     : 1,
+                                        itemStyle      : {
+                                            normal         : {
+                                                barBorderRadius: 6,
+                                                barGap:'50',
+                                                color : 'rgba(255, 255, 255, 0.1)'
+                                            }
+                                        },
+                                        barWidth: 6,
+                                        //barheight: 50,
+                                        data: data.map(function (val) {
+                                            return 100;
+                                        })
+                                    },
+                                    {
+                                        type: 'bar',
+                                        label:{normal:{formatter:"{c}%", show:true, position:[60, -17 ],textStyle:series_bar_label_normal_textStyle}},
+                                        barGap:'50',
+                                        data: jsonObjArr,
+                                        barWidth: 6
+                                    }
+                                ],
+                                animationEasing: 'elasticOut',
+                                animationDelayUpdate: function (idx) {
+                                    return idx * 200;
+                                }
+                            };
+
+                            _this.complain_settlement_div.setOption(option);
+
+                        })
+                }
+                if(prov_or_city == 1){
+                    $http.get(this.CONTEXT_PATH + "/city_rate_sort",{'beginDate': beginDate, 'endDate': endDate, 'zoneCode': zoneCode,'rateType':'1'},
+                        function (result) {
+
+                            var xAxisData = [];
+                            var data = [];
+                            var jsonObjArr = [];
+                            var max_total_val = 0;
+
+                            $(result).each(function (i, item) {
+                                if(i<10){
+                                    //只取区县列表的前十个
+                                    xAxisData.push(item.name);
+
+                                    data.push(item.rate);
+                                    if(item.rate > max_total_val)
+                                        max_total_val = item.rate;
+
+                                    var jsonObj = {name: i + 1,value:item.rate,
+                                        itemStyle: {
+                                            normal: {
+                                                barBorderRadius: 6,
+                                                color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{
+                                                    offset: 1,
+                                                    color: '#238C3F'
+                                                }, {
+                                                    offset: 0,
+                                                    color: '#2BAF4E'
+                                                }]),
+                                                shadowColor: 'rgba(0, 0, 0, 0.4)',
+                                                shadowBlur: 20
+                                            }
+                                        }};
+
+                                    jsonObjArr.push(jsonObj);
+                                }
+                            });
+
+                            //如果地区数，小于10个，其他补充为空
+                            var supplementObjLen = 10 - result.length;
+                            if(supplementObjLen > 0){
+                                for(var suppleIndex = 0; suppleIndex < supplementObjLen; suppleIndex++){
+                                    xAxisData.push("  ");
+                                    data.push(0);
+                                    var jsonObj = {name:result.length + suppleIndex,value:0,
+                                        itemStyle: {
+                                            normal: {
+                                                barBorderRadius: 6,
+                                                color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{
+                                                    offset: 0,
+                                                    color: '#953616'
+                                                },
+                                                    {
+                                                        offset: 1,
+                                                        color: '#D54E1E'
+                                                    }]),
+                                                shadowColor: 'rgba(0, 0, 0, 0.4)',
+                                                shadowBlur: 20
+                                            }
+                                        }};
+                                    jsonObjArr.push(jsonObj);
+                                }
+                            }
+
+                            xAxisData = xAxisData.reverse();
+                            data = data.reverse();
+                            jsonObjArr = jsonObjArr.reverse();
+
+                            var option = {
+                                grid: {
+                                    top:'4%',
+                                    left: '0%',
+                                    right: '10%',
+                                    bottom: '5%',
+                                    //containLabel: true
+                                },
+                                yAxis: [{
+                                    data: xAxisData.map(function(x){
+                                        return x;
+                                    }),
+                                    show : false,
+                                    splitLine : {show : false},
+                                    axisTick:{show:false},
+                                    axisLine : {show : false,lineStyle : {type : 'solid',width: 1,color : '#999'}}
+                                }, {
+                                    // 辅助 x 轴
+                                    show: false,
+                                    data: xAxisData.map(function(x){
+                                        return x;
+                                    })
+                                }],
+                                xAxis: {
+                                    max: 100,
+                                    splitLine : {show : false},
+                                    axisTick:{show:false},
+                                    axisLabel:{show:false},
+                                    axisLine : {show : false,lineStyle : {type : 'solid',width: 1,color : '#999'}}
+                                },
+                                series: [
+                                    {
+                                        // 辅助系列
+                                        type           : 'bar',
+                                        label:{normal:{formatter:"{b}", show:true, position:[0, -17],textStyle:series_bar_label_normal_textStyle}},
+                                        silent         : true,
+                                        yAxisIndex     : 1,
+                                        itemStyle      : {
+                                            normal         : {
+                                                barBorderRadius: 6,
+                                                barGap:'50',
+                                                color : 'rgba(255, 255, 255, 0.1)'
+                                            }
+                                        },
+                                        barWidth: 6,
+                                        //barheight: 50,
+                                        data: data.map(function (val) {
+                                            return 100;
+                                        })
+                                    },
+                                    {
+                                        type: 'bar',
+                                        label:{normal:{formatter:"{c}%", show:true, position:[80 , -17 ],textStyle:series_bar_label_normal_textStyle}},
+                                        barGap:'50',
+                                        data: jsonObjArr,
+                                        barWidth: 6
+                                    }
+                                ],
+                                animationEasing: 'elasticOut',
+                                animationDelayUpdate: function (idx) {
+                                    return idx * 200;
+                                }
+                            };
+
+                            _this.complain_settlement_div.setOption(option);
+
+                        })
+                }
+
+            },
+            complain_tourist_source_barChart_dataReflesh:function(zoneCode1){
+                var _this = this;
+                var complain_source_bar_color_begin = ["#5E5FC7","#BC4B4C","#C2669A","#90BB65","#40A678","#3058BA","#B66C2A","#1996b3","#1E788E"];
+                var complain_source_bar_color_end = ["#6969DE","#E25759","#E374B0","#B1E678","#5AE6A1","#3E6FE6","#F28F36","#279f41","#289FBA"];
+
+
+                var beginDate = _this.defaultdata["beginDate"],
+                    endDate = _this.defaultdata["endDate"],
+                    zoneCode = _this.defaultdata["code12301"],
+                    zoneName = _this.defaultdata["zoneName"];
+                if(zoneCode1){
+                    zoneCode=zoneCode1;
+                }
+
+                var year_or_month = monthOrYearJudge(beginDate, endDate);
+                var china_or_prov_flag = 2;
+                if(zoneCode == '86'){
+                    china_or_prov_flag =1;
+                }
+
+                var xAxisData = [];
+                var data = [];
+                var barStyleArrs = [] ;
+                var maxTypeData = 100;
+                //通过接口异步请求数据
+                $http.get(this.CONTEXT_PATH + "/source_place_top",{'beginDate': beginDate, 'endDate': endDate, 'zoneCode': zoneCode,'type':'0'},
+                    function (result) {
+
+                        $(result).each(function (i, item) {
+                            if(i < 8) {
+                                var prov_str = item.name;
+                                if(prov_str){
+                                    prov_str = item.name.replace("省","").replace("市","");
+                                }
+
+                                xAxisData.push(prov_str);
+                                data.push(item.rate);
+
+                                var barStyleObj = {
+                                    name: i + 1, value: item.rate,
+                                    itemStyle: {
+                                        normal: {
+                                            barBorderRadius: 8,
+                                            color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{
+                                                offset: 1,
+                                                color: complain_source_bar_color_begin[i]
+                                            }, {
+                                                offset: 0,
+                                                color: complain_source_bar_color_end[i]
+                                            }]),
+                                            shadowColor: 'rgba(0, 0, 0, 0.4)',
+                                            shadowBlur: 20
+                                        }
+                                    }
+                                };
+                                barStyleArrs.push(barStyleObj);
+                            }
+                        });
+
+                        //倒序排列
+                        xAxisData = xAxisData.reverse();
+                        data = data.reverse();
+                        barStyleArrs = barStyleArrs.reverse();
+
+                        //complain_type_tourist_source_barChart.hideLoading();
+                        _this.complain_tourist_source_barChart.setOption({
+                            grid: {
+                                top:'5%',
+                                left: '10%',
+                                right: '16%',
+                                bottom: '0%',
+                                containLabel: true
+                            },
+                            yAxis: [
+                                {
+                                    data: xAxisData.map(function(x){
+                                        return x;
+                                    }),
+                                    splitLine : {show : false},
+                                    axisTick:{show:false},
+                                    axisLabel:{show:true,textStyle:yAxis_axisLabel_textStyle},
+                                    axisLine : {show : false,lineStyle : {type : 'solid',width: 1,color : '#AAC8DC'}}
+                                },
+                                {
+                                    show: false,
+                                    data: xAxisData.map(function(x){
+                                        return x;
+                                    })
+                                }
+                            ],
+                            xAxis: {
+                                max: maxTypeData,
+                                splitLine : {show : false},
+                                axisTick:{show:false},
+                                axisLabel:{show:false,textStyle:xAxis_axisLabel_textStyle},
+                                axisLine : {show : false,lineStyle : {type : 'solid',width: 1,color : '#AAC8DC'}}
+                            },
+                            series: [
+                                {
+                                    // 辅助系列
+                                    type           : 'bar',
+                                    silent         : true,
+                                    yAxisIndex     : 1,
+                                    itemStyle      : {
+                                        normal     : {
+                                            barBorderRadius: 8,
+                                            color : 'rgba(255, 255, 255, 0.1)'
+                                        }
+                                    },
+                                    barWidth: 8 ,
+                                    barHeight: 50,
+                                    data: data.map(function (val) {
+                                        return maxTypeData;
+                                    })
+                                },
+                                {
+                                    type: 'bar',
+                                    label:{normal:{formatter:"{c}%", show:true, position:[160 , -5],textStyle:series_bar_label_normal_textStyle}},
+                                    data: barStyleArrs,
+                                    barWidth: 8
+                                }
+                            ],
+                            animationEasing: 'elasticOut',
+                            animationDelayUpdate: function (idx) {
+                                return idx * 200;
+                            }
+
+                        });
+                    })
+
+            },
+            complain_tourist_sex_barChart_dataReflesh:function(zoneCode1){
+                var _this = this;
+
+                var legendDataArr = [];
+                var totalGender = 0;
+                var dataArr = [];
+                var femaleData = 0;
+                var maleData = 0;
+                var startAngle = 0;
+
+                var beginDate = _this.defaultdata["beginDate"],
+                    endDate = _this.defaultdata["endDate"],
+                    zoneCode = _this.defaultdata["code12301"],
+                    zoneName = _this.defaultdata["zoneName"];
+
+                if(zoneCode1){
+                    zoneCode=zoneCode1;
+                }
+
+                //通过接口异步请求数据
+                $http.get(this.CONTEXT_PATH + "/gender",{'beginDate': beginDate, 'endDate': endDate, 'zoneCode': zoneCode,'type':'0'},
+                    function (result) {
+                        $(result).each(function (i, item) {
+                            var legendObj = {name: item.gender,textStyle:legend_data_textStyle,icon:'roundRect'};
+                            var dataObj = {value:item.data,name:item.gender};
+
+                            legendDataArr.push(legendObj);
+                            dataArr.push(dataObj);
+                            totalGender = totalGender + item.data;
+
+                            if(i==0)
+                                maleData = item.data;
+                            else
+                                femaleData = item.data;
+                        });
+
+                        dataArr = dataArr.reverse();
+                        startAngle = 180-(360*maleData/(maleData+femaleData)/2)
+
+                        _this.complain_tourist_sex_barChart.setOption({
+                            legend: {
+                                data: legendDataArr
+                            },
+                            series: [
+                                {
+                                    data: [{value:totalGender, name:'性别\n比例',label:{ normal:{textStyle:series_bar_data_label_normal_textStyle}},
+                                        selected:true,itemStyle:{normal:{color:'rgba(255, 255, 255, 0.1)'}}}]
+                                },
+                                {
+                                    startAngle:startAngle,
+                                    data: dataArr
+                                }
+                            ]
+                        });
+
+                    });
+
+            },
+            complain_tourist_age_barChart_dataReflesh:function(zoneCode1){
+                var _this = this;
+
+                var beginDate = _this.defaultdata["beginDate"],
+                    endDate = _this.defaultdata["endDate"],
+                    zoneCode = _this.defaultdata["code12301"],
+                    zoneName = _this.defaultdata["zoneName"];
+
+                if(zoneCode1){
+                    zoneCode=zoneCode1;
+                }
+                $http.get(this.CONTEXT_PATH + "/age",{'beginDate': beginDate, 'endDate': endDate, 'zoneCode': zoneCode,'type':'0'},
+                    function (result) {
+
+                        var data =[];
+                        var datastr = [];
+                        var total_data = 0;
+
+                        $(result).each(function (i, item) {
+                            datastr.push(item.age);
+                            data.push([item.age,item.data]);
+                            total_data += item.data;
+                        });
+
+                        //计算百分比
+                        if(total_data != 0){
+                            var childRate = (data[0][1] / total_data) * 100;
+                            childRate = childRate.toFixed(1);
+                            var youngRate = (data[1][1] / total_data) * 100;
+                            youngRate = youngRate.toFixed(1);
+                            var middleRate = (data[2][1] / total_data) * 100;
+                            middleRate = middleRate.toFixed(1);
+                            var oldRate = 100 - childRate - youngRate - middleRate;
+                            oldRate = oldRate.toFixed(1);
+
+                            data[0][1] = childRate;
+                            data[1][1] = youngRate;
+                            data[2][1] = middleRate;
+                            data[3][1] = oldRate;
+                        }
+
+                        var  option = {
+                            color: ['#3398DB'],
+                            tooltip : {
+                                trigger: 'axis',
+                                axisPointer : {            // 坐标轴指示器，坐标轴触发有效
+                                    type : 'shadow'        // 默认为直线，可选为：'line' | 'shadow'
+                                }
+                            },
+                            grid: {
+                                top:'20%',
+                                left: '-4%',
+                                right: '4%',
+                                bottom: '3%',
+                                containLabel: true
+                            },
+                            xAxis : [
+                                {
+                                    //show:false,
+                                    type : 'category',
+                                    axisTick:false,
+                                    data : datastr,
+                                    splitArea:{
+                                        interval:0,
+                                        show:true,
+                                        areaStyle:{
+                                            color: ['#17384d','rgba(0, 0, 0, 0)']
+                                        }
+                                    },
+                                    splitLine:{show:false},
+                                    axisLine : {
+                                        lineStyle : {
+                                            color: '#254357'
+                                        }
+                                    },
+                                    axisLabel : {
+                                        show: true,
+                                        textStyle: xAxis_axisLabel_textStyle
+                                    }
+                                }
+                            ],
+                            yAxis : [
+                                {
+                                    show:true,
+                                    type : 'value',
+                                    axisTick: {
+                                        show:false,
+                                        alignWithLabel: false
+                                    },
+                                    splitLine : {show : true,lineStyle : {type : 'dotted',width : '0.5',color:'#254357'}},
+                                    axisLine : {
+                                        lineStyle : {
+                                            color: '#254357'
+                                        }
+                                    },
+                                    axisLabel: {
+                                        show: false,
+                                        textStyle: yAxis_axisLabel_textStyle,
+                                        formatter: '{value}'
+                                    },
+                                    zlevel:2
+                                }
+                            ],
+                            series : [
+                                {
+                                    name:'年龄段占比',
+                                    type:'scatter',
+                                    barWidth: '60%',
+                                    zlevel:3,
+                                    data:
+                                        [
+                                            {
+                                                value:data[0],
+                                                symbolSize: data[0][1]/1.6,
+                                                label: {
+                                                    normal:{
+                                                        show:true,
+                                                        formatter: function (param) {
+                                                            return param.data.value[1]+"%";
+                                                        },
+                                                        position: 'inside',
+                                                        textStyle : {
+                                                            fontSize: 12
+                                                        }
+                                                    },
+                                                    emphasis: {
+                                                        show: true
+                                                    }
+                                                },
+                                                itemStyle: {
+                                                    normal: {
+                                                        shadowBlur: 10,
+                                                        borderColor:"#fff",
+                                                        shadowColor: 'rgba(25, 100, 150, 0.5)',
+                                                        shadowOffsetY: 5,
+                                                        color: new echarts.graphic.RadialGradient(0.4, 0.3, 1, [{
+                                                            offset: 0,
+                                                            color: '#67CD51'
+                                                        }, {
+                                                            offset: 1,
+                                                            color: '#D8EEDC'
+                                                        }])
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                value:data[1],
+                                                symbolSize: data[1][1]/1.6,
+                                                label: {
+                                                    normal:{
+                                                        show:true,
+                                                        borderColor:"#fff",
+
+                                                        formatter: function (param) {
+                                                            return param.data.value[1]+"%";
+                                                        },
+                                                        position: 'inside',
+                                                        textStyle : {
+                                                            fontSize: 12
+                                                        }
+                                                    },
+                                                    emphasis: {
+                                                        show: true
+                                                    }
+                                                },
+                                                itemStyle: {
+                                                    normal: {
+                                                        shadowBlur: 10,
+                                                        borderColor:"#fff",
+                                                        shadowColor: 'rgba(25, 100, 150, 0.5)',
+                                                        shadowOffsetY: 5,
+                                                        color: new echarts.graphic.RadialGradient(0.4, 0.3, 1, [{
+                                                            offset: 0,
+                                                            color: '#69A8A8'
+                                                        }, {
+                                                            offset: 1,
+                                                            color: '#D8EEDC'
+                                                        }])
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                value:data[2],
+                                                symbolSize: data[2][1]/1.6,
+                                                label: {
+                                                    normal:{
+                                                        show:true,
+                                                        formatter: function (param) {
+                                                            return param.data.value[1]+"%";
+                                                        },
+                                                        position: 'inside',
+                                                        textStyle : {
+                                                            fontSize: 12
+                                                        }
+                                                    },
+                                                    emphasis: {
+                                                        show: true
+                                                    }
+                                                },
+                                                itemStyle: {
+                                                    normal: {
+                                                        shadowBlur: 10,
+                                                        borderColor:"#fff",
+                                                        shadowColor: 'rgba(25, 100, 150, 0.5)',
+                                                        shadowOffsetY: 5,
+                                                        color: new echarts.graphic.RadialGradient(0.4, 0.3, 1, [{
+                                                            offset: 0,
+                                                            color: '#029EDC'
+                                                        }, {
+                                                            offset: 1,
+                                                            color: '#8BCCF4'
+                                                        }])
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                value:data[3],
+                                                symbolSize: data[3][1]/1.6,
+                                                label: {
+                                                    normal:{
+                                                        show:true,
+                                                        borderColor:"#fff",
+                                                        formatter: function (param) {
+                                                            return param.data.value[1]+"%";
+                                                        },
+                                                        position: 'inside',
+                                                        textStyle : {
+                                                            fontSize: 12
+                                                        }
+                                                    },
+                                                    emphasis: {
+                                                        show: true
+                                                    }
+                                                },
+                                                itemStyle: {
+                                                    normal: {
+                                                        shadowBlur: 10,
+                                                        borderColor:"#fff",
+                                                        shadowColor: 'rgba(25, 100, 150, 0.5)',
+                                                        shadowOffsetY: 5,
+                                                        color: new echarts.graphic.RadialGradient(0.4, 0.3, 1, [{
+                                                            offset: 0,
+                                                            color: '#B0B12B'
+                                                        }, {
+                                                            offset: 1,
+                                                            color: '#B8E0BF'
+                                                        }])
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                }
+                            ],
+                            animationEasing: 'elasticOut',
+                            animationDelayUpdate: function (idx) {
+                                return idx * 200;
+                            }
+                        };
+
+                        _this.complain_tourist_age_barChart.setOption(option);
+                    })
+            },
+            complain_channel_chart_dataReflesh:function(zoneCode1){
+                var _this = this;
+
+                var beginDate = _this.defaultdata["beginDate"],
+                    endDate = _this.defaultdata["endDate"],
+                    zoneCode = _this.defaultdata["code12301"],
+                    zoneName = _this.defaultdata["zoneName"];
+                if(zoneCode1){
+                    zoneCode=zoneCode1;
+                }
+
+                $http.get(this.CONTEXT_PATH + "/channel",{'beginDate': beginDate, 'endDate': endDate, 'zoneCode': zoneCode},
+                    function (result) {
+                        var lengArr = [];
+                        var totalObj;
+                        var dataArr = [];
+                        var totalType = 0;
+                        $(result).each(function (i, item) {
+                            var lengObj = {name:item.name,textStyle:legend_data_textStyle,icon:'roundRect'};
+                            lengArr.push(lengObj);
+
+                            var dataObj = {value:item.data, name:item.name,textStyle:title_textStyle,icon: 'roundRect'};
+                            dataArr.push(dataObj);
+
+                            totalType = totalType + item.data;
+                        });
+
+                        _this.complain_channel_chart.setOption({
+                            legend:{
+                                data:lengArr
+                            },
+                            series: [
+                                {
+                                    data : [{value:totalType, name:'投诉\n渠道',label:{ normal:{textStyle:series_bar_data_label_normal_textStyle}},selected:true,itemStyle:{normal:{color:'rgba(255, 255, 255, 0.1)'}}}]
+                                },
+                                {
+                                    data : dataArr
+                                }
+                            ]
+                        });
+
+
+                    });
+
+            }
+        }
+    }
+
+
+</script>
+</body>
+</html>
